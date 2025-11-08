@@ -1,0 +1,134 @@
+.message-item {
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  background: #f9fafb;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.message-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.message-item.message-chat {
+  border-left-color: #3b82f6;
+}
+
+.message-item.message-gift {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.message-item.message-follow {
+  border-left-color: #10b981;
+  background: #f0fdf4;
+}
+
+.message-item.message-like {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.message-item.message-share {
+  border-left-color: #8b5cf6;
+  background: #faf5ff;
+}
+
+.message-item.message-streamEnd {
+  border-left-color: #6b7280;
+  background: #f3f4f6;
+}
+
+.message-item.message-error {
+  border-left-color: #dc2626;
+  background: #fef2f2;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+}
+
+.message-icon {
+  font-size: 1.2rem;
+}
+
+.message-type {
+  font-weight: 600;
+  color: #374151;
+}
+
+.message-time {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.message-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-name {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.message-content {
+  margin-top: 8px;
+}
+
+.comment-text {
+  color: #374151;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.gift-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gift-info strong {
+  color: #f59e0b;
+  font-size: 1.1rem;
+}
+
+.repeat-count {
+  background: #fef3c7;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.like-count {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+.error-text {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.stream-end-text {
+  color: #6b7280;
+  font-style: italic;
+}
+

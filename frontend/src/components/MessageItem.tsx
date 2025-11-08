@@ -1,0 +1,115 @@
+import './MessageItem.css';
+import { Message } from '../types';
+
+interface MessageItemProps {
+  message: Message;
+}
+
+function MessageItem({ message }: MessageItemProps) {
+  const formatTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  };
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'chat':
+        return '💬';
+      case 'gift':
+        return '🎁';
+      case 'follow':
+        return '👤';
+      case 'like':
+        return '❤️';
+      case 'share':
+        return '📤';
+      case 'streamEnd':
+        return '⏹️';
+      case 'error':
+        return '❌';
+      default:
+        return '📨';
+    }
+  };
+
+  const getTypeLabel = (type: string) => {
+    switch (type) {
+      case 'chat':
+        return 'Message';
+      case 'gift':
+        return 'Cadeau';
+      case 'follow':
+        return 'Nouveau follower';
+      case 'like':
+        return 'Like';
+      case 'share':
+        return 'Partage';
+      case 'streamEnd':
+        return 'Stream terminé';
+      case 'error':
+        return 'Erreur';
+      default:
+        return type;
+    }
+  };
+
+  return (
+    <div className={`message-item message-${message.type}`}>
+      <div className="message-header">
+        <span className="message-icon">{getIcon(message.type)}</span>
+        <span className="message-type">{getTypeLabel(message.type)}</span>
+        <span className="message-time">{formatTime(message.timestamp)}</span>
+      </div>
+      
+      {message.data.nickname && (
+        <div className="message-user">
+          {message.data.profilePictureUrl && (
+            <img
+              src={message.data.profilePictureUrl}
+              alt={message.data.nickname}
+              className="user-avatar"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
+          <span className="user-name">{message.data.nickname}</span>
+        </div>
+      )}
+
+      <div className="message-content">
+        {message.type === 'chat' && message.data.comment && (
+          <p className="comment-text">{message.data.comment}</p>
+        )}
+        
+        {message.type === 'gift' && (
+          <div className="gift-info">
+            <p><strong>{message.data.giftName}</strong></p>
+            {message.data.repeatCount && message.data.repeatCount > 1 && (
+              <p className="repeat-count">x{message.data.repeatCount}</p>
+            )}
+          </div>
+        )}
+
+        {message.type === 'like' && message.data.likeCount && (
+          <p className="like-count">{message.data.likeCount} likes</p>
+        )}
+
+        {message.type === 'error' && message.data.error && (
+          <p className="error-text">{message.data.error}</p>
+        )}
+
+        {message.type === 'streamEnd' && (
+          <p className="stream-end-text">Le stream est terminé</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default MessageItem;
+
