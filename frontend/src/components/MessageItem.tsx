@@ -66,8 +66,6 @@ function MessageItem({ message, isMarked = false }: MessageItemProps) {
   return (
     <div className={`message-item message-${message.type} ${isMarked ? 'message-marked' : ''}`}>
       <div className="message-header">
-        <span className="message-icon">{getIcon(message.type)}</span>
-        <span className="message-type">{getTypeLabel(message.type)}</span>
         {isMarked && <span className="message-badge">⭐ Premier match</span>}
         <span className="message-time">{formatTime(message.timestamp)}</span>
       </div>
