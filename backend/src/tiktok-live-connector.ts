@@ -18,6 +18,30 @@ export class TikTokLiveConnector {
         enableExtendedGiftInfo: true,
       });
 
+      // Event: Room stats (viewers)
+      this.connection.on('roomUser', (data) => {
+        this.broadcastCallback({
+          type: 'stats',
+          timestamp: new Date().toISOString(),
+          data: {
+            viewerCount: data.viewerCount || data.viewer || 0,
+            uniqueId: this.uniqueId,
+          },
+        });
+      });
+
+      // Event: Like stats (total likes)
+      this.connection.on('like', (data) => {
+        this.broadcastCallback({
+          type: 'stats',
+          timestamp: new Date().toISOString(),
+          data: {
+            totalLikeCount: data.totalLikeCount || data.likeCount || 0,
+            uniqueId: this.uniqueId,
+          },
+        });
+      });
+
       // Event: Chat messages
       this.connection.on('chat', (data) => {
         console.log(`💬 Message de ${data.uniqueId}: ${data.comment}`);

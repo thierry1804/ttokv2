@@ -1,6 +1,6 @@
 export interface Message {
   id: string;
-  type: 'chat' | 'gift' | 'follow' | 'like' | 'share' | 'streamEnd' | 'error';
+  type: 'chat' | 'gift' | 'follow' | 'like' | 'share' | 'streamEnd' | 'error' | 'stats';
   timestamp: string;
   data: {
     userId?: string;
@@ -13,6 +13,8 @@ export interface Message {
     profilePictureUrl?: string;
     uniqueId?: string;
     error?: string;
+    viewerCount?: number;
+    totalLikeCount?: number;
   };
 }
 

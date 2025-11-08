@@ -13,6 +13,8 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [uniqueId, setUniqueId] = useState('');
   const [isListening, setIsListening] = useState(false);
+  const [viewerCount, setViewerCount] = useState<number | null>(null);
+  const [likeCount, setLikeCount] = useState<number | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -40,6 +42,18 @@ function App() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        // Gérer les statistiques séparément
+        if (data.type === 'stats') {
+          if (data.data.viewerCount !== undefined) {
+            setViewerCount(data.data.viewerCount);
+          }
+          if (data.data.totalLikeCount !== undefined) {
+            setLikeCount(data.data.totalLikeCount);
+          }
+          return; // Ne pas ajouter les stats aux messages
+        }
+        
         const newMessage: Message = {
           id: `${data.type}-${Date.now()}-${Math.random()}`,
           type: data.type,
@@ -104,6 +118,8 @@ function App() {
 
   const clearMessages = () => {
     setMessages([]);
+    setViewerCount(null);
+    setLikeCount(null);
   };
 
   useEffect(() => {
@@ -128,6 +144,8 @@ function App() {
           setUniqueId={setUniqueId}
           isConnected={isConnected}
           isListening={isListening}
+          viewerCount={viewerCount}
+          likeCount={likeCount}
           onStart={startListening}
           onStop={stopListening}
           onClear={clearMessages}

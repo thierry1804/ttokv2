@@ -5,6 +5,8 @@ interface ControlPanelProps {
   setUniqueId: (value: string) => void;
   isConnected: boolean;
   isListening: boolean;
+  viewerCount: number | null;
+  likeCount: number | null;
   onStart: () => void;
   onStop: () => void;
   onClear: () => void;
@@ -15,6 +17,8 @@ function ControlPanel({
   setUniqueId,
   isConnected,
   isListening,
+  viewerCount,
+  likeCount,
   onStart,
   onStop,
   onClear,
@@ -38,6 +42,25 @@ function ControlPanel({
         <span className={`status-dot ${isConnected ? 'connected' : 'disconnected'}`}></span>
         <span>{isConnected ? 'Connecté' : 'Déconnecté'}</span>
       </div>
+
+      {(viewerCount !== null || likeCount !== null) && (
+        <div className="stats-container">
+          {viewerCount !== null && (
+            <div className="stat-item">
+              <span className="stat-icon">👁️</span>
+              <span className="stat-label">Viewers:</span>
+              <span className="stat-value">{viewerCount.toLocaleString()}</span>
+            </div>
+          )}
+          {likeCount !== null && (
+            <div className="stat-item">
+              <span className="stat-icon">❤️</span>
+              <span className="stat-label">Likes:</span>
+              <span className="stat-value">{likeCount.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="button-group">
         <button

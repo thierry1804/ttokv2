@@ -44,6 +44,37 @@
   font-weight: 500;
 }
 
+.stats-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 8px;
+  border: 1px solid #bae6fd;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stat-icon {
+  font-size: 1.2rem;
+}
+
+.stat-label {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+.stat-value {
+  font-weight: 700;
+  color: #0c4a6e;
+  font-size: 1.1rem;
+}
+
 .status-dot {
   width: 12px;
   height: 12px;
