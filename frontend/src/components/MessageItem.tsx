@@ -8,11 +8,16 @@ interface MessageItemProps {
 function MessageItem({ message }: MessageItemProps) {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('fr-FR', {
+    const timeString = date.toLocaleTimeString('fr-FR', {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
     });
+    // Ajouter les centièmes de seconde
+    const centiseconds = Math.floor(date.getMilliseconds() / 10)
+      .toString()
+      .padStart(2, '0');
+    return `${timeString}.${centiseconds}`;
   };
 
   const getIcon = (type: string) => {
