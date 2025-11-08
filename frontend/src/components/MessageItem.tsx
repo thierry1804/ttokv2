@@ -3,9 +3,10 @@ import { Message } from '../types';
 
 interface MessageItemProps {
   message: Message;
+  isMarked?: boolean;
 }
 
-function MessageItem({ message }: MessageItemProps) {
+function MessageItem({ message, isMarked = false }: MessageItemProps) {
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const timeString = date.toLocaleTimeString('fr-FR', {
@@ -63,10 +64,11 @@ function MessageItem({ message }: MessageItemProps) {
   };
 
   return (
-    <div className={`message-item message-${message.type}`}>
+    <div className={`message-item message-${message.type} ${isMarked ? 'message-marked' : ''}`}>
       <div className="message-header">
         <span className="message-icon">{getIcon(message.type)}</span>
         <span className="message-type">{getTypeLabel(message.type)}</span>
+        {isMarked && <span className="message-badge">⭐ Premier match</span>}
         <span className="message-time">{formatTime(message.timestamp)}</span>
       </div>
       

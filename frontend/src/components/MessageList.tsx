@@ -8,6 +8,20 @@ interface MessageListProps {
 }
 
 function MessageList({ messages, messagesEndRef }: MessageListProps) {
+  // Fonction pour détecter si un message correspond au pattern
+  const matchesPattern = (comment: string | undefined): boolean => {
+    if (!comment) return false;
+    // Pattern: "jp" suivi de chiffres (jp1, jp2, jp10, etc.) ou juste des chiffres (1, 2, 10, etc.)
+    const jpPattern = /\bjp\d+\b/i; // "jp" suivi de chiffres
+    const numberPattern = /^\d+$/; // Juste des chiffres
+    return jpPattern.test(comment) || numberPattern.test(comment.trim());
+  };
+
+  // Trouver l'index du premier message qui correspond au pattern
+  const firstMatchIndex = messages.findIndex(
+    (msg) => msg.type === 'chat' && matchesPattern(msg.data.comment)
+  );
+
   return (
     <div className="message-list-container">
       <div className="message-list-header">
@@ -21,8 +35,12 @@ function MessageList({ messages, messagesEndRef }: MessageListProps) {
           </div>
         ) : (
           <>
-            {messages.map((message) => (
-              <MessageItem key={message.id} message={message} />
+            {messages.map((message, index) => (
+              <MessageItem 
+                key={message.id} 
+                message={message} 
+                isMarked={index === firstMatchIndex}
+              />
             ))}
             <div ref={messagesEndRef} />
           </>
