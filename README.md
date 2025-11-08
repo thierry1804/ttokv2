@@ -1,13 +1,13 @@
 # TikTok Live Messages API v2
 
-Service permettant de lister en temps réel les messages d'un live TikTok et de les afficher sur une plateforme React.
+Service permettant de lister en temps réel les messages d'un live TikTok et de les afficher sur une plateforme React avec statistiques en temps réel (viewers et likes).
 
 ## 🏗️ Architecture
 
 Le projet est composé de deux parties :
 
-- **Backend** : Service Node.js/TypeScript qui écoute les messages TikTok en temps réel via `@tobyg74/tiktok-api-live`
-- **Frontend** : Application React qui affiche les messages reçus via WebSocket
+- **Backend** : Service Node.js/TypeScript qui écoute les messages TikTok en temps réel via `tiktok-live-connector`
+- **Frontend** : Application React qui affiche les messages reçus via WebSocket avec statistiques en temps réel
 
 ## 📋 Prérequis
 
@@ -60,6 +60,15 @@ L'application React démarre sur `http://localhost:3000`
 2. Entrez l'`uniqueId` du créateur TikTok (ex: `username` sans le @)
 3. Cliquez sur "Démarrer" pour commencer à écouter le live
 4. Les messages apparaîtront en temps réel dans l'interface
+5. Les statistiques (viewers et likes) s'affichent automatiquement en temps réel dans le panneau de contrôle
+
+## ✨ Fonctionnalités
+
+- **Messages en temps réel** : Affichage des messages de chat uniquement (filtrage des likes, gifts, follows, etc.)
+- **Statistiques en direct** : Affichage du nombre de viewers et de likes en temps réel
+- **Marquage intelligent** : Le premier message contenant "jp" suivi de chiffres ou uniquement des chiffres est automatiquement marqué
+- **Informations utilisateur** : Affichage du nom d'utilisateur avec son pseudo TikTok (@uniqueId)
+- **Précision temporelle** : Affichage de l'heure avec centièmes de seconde
 
 ## 🔌 API Endpoints
 
@@ -93,17 +102,16 @@ Vérifie l'état du serveur.
 
 Les messages sont transmis via WebSocket avec les types suivants :
 
-- `chat` : Messages de chat
-- `gift` : Cadeaux reçus
-- `follow` : Nouveaux followers
-- `like` : Likes
-- `share` : Partages
+- `chat` : Messages de chat (seul type affiché dans l'interface)
+- `stats` : Statistiques en temps réel (viewers et likes) - affichées dans le panneau de contrôle
 - `streamEnd` : Fin du stream
 - `error` : Erreurs
 
+**Note** : Les événements `gift`, `follow`, `like` et `share` sont capturés mais non affichés dans la liste des messages (uniquement utilisés pour les statistiques).
+
 ## 🛠️ Technologies utilisées
 
-- **Backend** : Node.js, TypeScript, Express, WebSocket (ws), @tobyg74/tiktok-api-live
+- **Backend** : Node.js, TypeScript, Express, WebSocket (ws), tiktok-live-connector
 - **Frontend** : React, TypeScript, Vite, Axios
 
 ## ⚠️ Notes importantes
@@ -137,4 +145,20 @@ VITE_WS_URL=ws://localhost:3002
 - Si les messages n'apparaissent pas, vérifiez que le créateur est bien en live
 - Vérifiez la console du navigateur pour les erreurs WebSocket
 - Assurez-vous que les ports 3000, 3001 et 3002 sont disponibles
+- Les statistiques (viewers/likes) peuvent prendre quelques secondes à apparaître après le démarrage
+
+## 📊 Format des messages
+
+Chaque message affiché contient :
+- **Nom d'utilisateur** : Le nom d'affichage du créateur
+- **Pseudo** : Le pseudo TikTok (@uniqueId) si différent du nom
+- **Message** : Le contenu du message de chat
+- **Heure** : Timestamp avec centièmes de seconde (format: HH:MM:SS.CC)
+- **Marquage** : Badge "⭐ Premier match" pour le premier message correspondant au pattern
+
+## 🎯 Pattern de détection
+
+Le système marque automatiquement le premier message contenant :
+- "jp" suivi de chiffres (ex: "jp1", "jp2", "jp10")
+- Ou uniquement des chiffres (ex: "1", "2", "10")
 
