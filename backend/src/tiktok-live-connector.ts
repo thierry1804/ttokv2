@@ -34,67 +34,17 @@ export class TikTokLiveConnector {
         });
       });
 
-      // Event: Gifts
-      this.connection.on('gift', (data) => {
-        console.log(`🎁 Cadeau reçu: ${data.giftName} de ${data.uniqueId}`);
-        this.broadcastCallback({
-          type: 'gift',
-          timestamp: new Date().toISOString(),
-          data: {
-            userId: data.userId,
-            nickname: data.nickname || data.uniqueId,
-            giftName: data.giftName,
-            giftId: data.giftId,
-            repeatCount: data.repeatCount,
-            profilePictureUrl: data.profilePictureUrl,
-          },
-        });
-      });
+      // Event: Gifts - Désactivé (uniquement les messages)
+      // this.connection.on('gift', (data) => { ... });
 
-      // Event: Followers
-      this.connection.on('follow', (data) => {
-        console.log(`👤 Nouveau follower: ${data.uniqueId}`);
-        this.broadcastCallback({
-          type: 'follow',
-          timestamp: new Date().toISOString(),
-          data: {
-            userId: data.userId,
-            nickname: data.nickname || data.uniqueId,
-            profilePictureUrl: data.profilePictureUrl,
-            uniqueId: data.uniqueId,
-          },
-        });
-      });
+      // Event: Followers - Désactivé (uniquement les messages)
+      // this.connection.on('follow', (data) => { ... });
 
-      // Event: Likes
-      this.connection.on('like', (data) => {
-        this.broadcastCallback({
-          type: 'like',
-          timestamp: new Date().toISOString(),
-          data: {
-            userId: data.userId,
-            nickname: data.nickname || data.uniqueId,
-            likeCount: data.likeCount,
-            profilePictureUrl: data.profilePictureUrl,
-            uniqueId: data.uniqueId,
-          },
-        });
-      });
+      // Event: Likes - Désactivé (uniquement les messages)
+      // this.connection.on('like', (data) => { ... });
 
-      // Event: Share
-      this.connection.on('share', (data) => {
-        console.log(`📤 Partage par ${data.uniqueId}`);
-        this.broadcastCallback({
-          type: 'share',
-          timestamp: new Date().toISOString(),
-          data: {
-            userId: data.userId,
-            nickname: data.nickname || data.uniqueId,
-            profilePictureUrl: data.profilePictureUrl,
-            uniqueId: data.uniqueId,
-          },
-        });
-      });
+      // Event: Share - Désactivé (uniquement les messages)
+      // this.connection.on('share', (data) => { ... });
 
       // Event: Stream end
       this.connection.on('streamEnd', () => {
