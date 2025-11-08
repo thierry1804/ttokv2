@@ -109,6 +109,8 @@ function App() {
     try {
       await axios.post(`${API_URL}/api/tiktok/stop`, { uniqueId });
       setIsListening(false);
+      setViewerCount(null);
+      setLikeCount(null);
       disconnectWebSocket();
     } catch (error: any) {
       console.error('Erreur lors de l\'arrêt:', error);
