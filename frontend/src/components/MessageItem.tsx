@@ -67,24 +67,23 @@ function MessageItem({ message, isMarked = false }: MessageItemProps) {
     <div className={`message-item message-${message.type} ${isMarked ? 'message-marked' : ''}`}>
       <div className="message-header">
         {isMarked && <span className="message-badge">⭐ Premier match</span>}
+        {message.data.nickname && (
+          <div className="message-user">
+            {message.data.profilePictureUrl && (
+              <img
+                src={message.data.profilePictureUrl}
+                alt={message.data.nickname}
+                className="user-avatar"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
+            <span className="user-name">{message.data.nickname}</span>
+          </div>
+        )}
         <span className="message-time">{formatTime(message.timestamp)}</span>
       </div>
-      
-      {message.data.nickname && (
-        <div className="message-user">
-          {message.data.profilePictureUrl && (
-            <img
-              src={message.data.profilePictureUrl}
-              alt={message.data.nickname}
-              className="user-avatar"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          )}
-          <span className="user-name">{message.data.nickname}</span>
-        </div>
-      )}
 
       <div className="message-content">
         {message.type === 'chat' && message.data.comment && (
