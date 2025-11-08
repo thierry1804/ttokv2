@@ -79,7 +79,12 @@ function MessageItem({ message, isMarked = false }: MessageItemProps) {
                 }}
               />
             )}
-            <span className="user-name">{message.data.nickname}</span>
+            <span className="user-name">
+              {message.data.nickname}
+              {message.data.uniqueId && message.data.uniqueId !== message.data.nickname && (
+                <span className="user-pseudo"> @{message.data.uniqueId}</span>
+              )}
+            </span>
           </div>
         )}
         <span className="message-time">{formatTime(message.timestamp)}</span>

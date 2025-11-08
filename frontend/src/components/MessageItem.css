@@ -130,6 +130,13 @@
   color: #1f2937;
 }
 
+.user-pseudo {
+  font-weight: 400;
+  color: #6b7280;
+  font-size: 0.9em;
+  margin-left: 4px;
+}
+
 .message-content {
   margin-top: 8px;
 }
