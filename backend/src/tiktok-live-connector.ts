@@ -29,7 +29,7 @@ export class TikTokLiveConnector {
       } else {
         console.log(`   ⚠️  Aucune clé API configurée (utilise le serveur de signature par défaut)`);
       }
-      
+
       this.connection = new TikTokLiveConnection(normalizedUniqueId, connectionOptions);
 
       // Event: Room stats (viewers) - WebcastEvent.ROOM_USER
@@ -200,8 +200,17 @@ export class TikTokLiveConnector {
   disconnect(): void {
     if (this.connection) {
       console.log(`🔌 Déconnexion du live de ${this.uniqueId}`);
-      this.connection.disconnect();
-      this.connection = null;
+      try {
+        // Retirer tous les listeners pour éviter les fuites mémoire
+        if (typeof this.connection.removeAllListeners === 'function') {
+          this.connection.removeAllListeners();
+        }
+        this.connection.disconnect();
+      } catch (e) {
+        console.warn(`⚠️  Erreur lors de la déconnexion de ${this.uniqueId}:`, e);
+      } finally {
+        this.connection = null;
+      }
     }
   }
 }

@@ -138,16 +138,23 @@ async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetrie
     tracker.attemptCount = retryCount + 1;
     rateLimitTracker.set(uniqueId, tracker);
     
-    // Stop existing connection if any
-    if (tiktokConnections.has(uniqueId)) {
-      const existingConnector = tiktokConnections.get(uniqueId);
-      existingConnector?.disconnect();
-      tiktokConnections.delete(uniqueId);
+    // Fermer toutes les connexions actives avant de démarrer une nouvelle
+    if (tiktokConnections.size > 0) {
+      console.log(`🔄 Fermeture de ${tiktokConnections.size} connexion(s) existante(s)...`);
+      for (const [existingUniqueId, existingConnector] of tiktokConnections.entries()) {
+        console.log(`   🔌 Déconnexion de ${existingUniqueId}`);
+        try {
+          existingConnector.disconnect();
+        } catch (e) {
+          console.warn(`   ⚠️  Erreur lors de la déconnexion de ${existingUniqueId}:`, e);
+        }
+      }
+      tiktokConnections.clear();
     }
 
     // Délai initial avant la première tentative pour éviter les requêtes trop rapides
     if (retryCount === 0) {
-      const initialDelay = 1000; // 1 seconde avant la première tentative
+      const initialDelay = 1500; // 1.5 secondes avant la première tentative (augmenté pour le nettoyage)
       console.log(`⏱️  Délai initial de ${initialDelay / 1000}s pour ${uniqueId}...`);
       await new Promise(resolve => setTimeout(resolve, initialDelay));
     }
@@ -249,15 +256,21 @@ app.post('/api/tiktok/start', async (req, res) => {
     tracker.lastAttempt = now;
     rateLimitTracker.set(uniqueId, tracker);
     
-    // Stop existing connection if any
-    if (tiktokConnections.has(uniqueId)) {
-      const existingConnector = tiktokConnections.get(uniqueId);
-      existingConnector?.disconnect();
-      tiktokConnections.delete(uniqueId);
+    // Fermer toutes les connexions actives avant de démarrer une nouvelle
+    // Cela évite les conflits lors du changement de compte
+    console.log(`🔄 Fermeture de ${tiktokConnections.size} connexion(s) existante(s)...`);
+    for (const [existingUniqueId, existingConnector] of tiktokConnections.entries()) {
+      console.log(`   🔌 Déconnexion de ${existingUniqueId}`);
+      try {
+        existingConnector.disconnect();
+      } catch (e) {
+        console.warn(`   ⚠️  Erreur lors de la déconnexion de ${existingUniqueId}:`, e);
+      }
     }
+    tiktokConnections.clear();
     
-    // Délai initial pour éviter les requêtes trop rapides
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // Délai de nettoyage pour s'assurer que les connexions sont bien fermées
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     // Create new connection
     const connector = new TikTokLiveConnector(uniqueId, broadcastMessage, TIKTOK_SIGN_API_KEY);
