@@ -165,19 +165,22 @@ app.get('/api/tiktok/active', (req, res) => {
 });
 
 // Start HTTP server
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
   console.log(`🔌 Serveur WebSocket démarré sur le port ${WS_PORT}`);
   console.log(`📡 Prêt à écouter les lives TikTok`);
   
-  // Auto-start si TIKTOK_UNIQUE_ID est configuré
+  // Auto-start si TIKTOK_UNIQUE_ID est configuré (en asynchrone pour ne pas bloquer)
   const defaultUniqueId = process.env.TIKTOK_UNIQUE_ID;
   if (defaultUniqueId) {
     console.log(`🔄 Démarrage automatique de l'écoute pour ${defaultUniqueId}...`);
     console.log(`ℹ️  Note: Assurez-vous que l'utilisateur est en live avant de démarrer.`);
-    // Ne pas attendre pour ne pas bloquer le démarrage du serveur
-    startTikTokConnection(defaultUniqueId).catch(() => {
-      // Erreur déjà gérée dans la fonction
+    // Démarrer en asynchrone sans bloquer
+    setImmediate(() => {
+      startTikTokConnection(defaultUniqueId).catch((error) => {
+        // Erreur déjà gérée dans la fonction, juste pour éviter les warnings
+        console.error('Erreur lors du démarrage automatique:', error.message);
+      });
     });
   } else {
     console.log(`ℹ️  Aucun TIKTOK_UNIQUE_ID configuré, démarrage manuel requis`);
