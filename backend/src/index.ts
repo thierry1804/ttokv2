@@ -44,8 +44,8 @@ function broadcastMessage(data: any) {
 // Store active TikTok connections
 const tiktokConnections = new Map<string, TikTokLiveConnector>();
 
-// Fonction pour démarrer automatiquement l'écoute
-async function startTikTokConnection(uniqueId: string) {
+// Fonction pour démarrer automatiquement l'écoute avec retry
+async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetries = 3) {
   try {
     // Stop existing connection if any
     if (tiktokConnections.has(uniqueId)) {
@@ -61,7 +61,30 @@ async function startTikTokConnection(uniqueId: string) {
     await connector.connect();
     console.log(`✅ Écoute automatique démarrée pour ${uniqueId}`);
   } catch (error: any) {
-    console.error(`❌ Erreur lors du démarrage automatique pour ${uniqueId}:`, error);
+    // Nettoyer la connexion en cas d'échec
+    if (tiktokConnections.has(uniqueId)) {
+      tiktokConnections.delete(uniqueId);
+    }
+
+    const errorMessage = error.message || error.toString();
+    console.error(`❌ Erreur lors du démarrage automatique pour ${uniqueId}:`, errorMessage);
+
+    // Messages d'erreur plus explicites
+    if (errorMessage.includes('Failed to retrieve the initial room data')) {
+      console.error(`⚠️  Raison probable : L'utilisateur "${uniqueId}" n'est pas en live actuellement ou le nom d'utilisateur est incorrect.`);
+    }
+
+    // Retry avec backoff exponentiel
+    if (retryCount < maxRetries) {
+      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Max 30 secondes
+      console.log(`🔄 Nouvelle tentative dans ${delay / 1000} secondes... (${retryCount + 1}/${maxRetries})`);
+      setTimeout(() => {
+        startTikTokConnection(uniqueId, retryCount + 1, maxRetries);
+      }, delay);
+    } else {
+      console.error(`❌ Échec définitif après ${maxRetries} tentatives pour ${uniqueId}`);
+      console.log(`ℹ️  Le serveur continue de fonctionner. Vous pouvez démarrer manuellement via l'API.`);
+    }
   }
 }
 
@@ -151,7 +174,11 @@ app.listen(PORT, async () => {
   const defaultUniqueId = process.env.TIKTOK_UNIQUE_ID;
   if (defaultUniqueId) {
     console.log(`🔄 Démarrage automatique de l'écoute pour ${defaultUniqueId}...`);
-    await startTikTokConnection(defaultUniqueId);
+    console.log(`ℹ️  Note: Assurez-vous que l'utilisateur est en live avant de démarrer.`);
+    // Ne pas attendre pour ne pas bloquer le démarrage du serveur
+    startTikTokConnection(defaultUniqueId).catch(() => {
+      // Erreur déjà gérée dans la fonction
+    });
   } else {
     console.log(`ℹ️  Aucun TIKTOK_UNIQUE_ID configuré, démarrage manuel requis`);
   }

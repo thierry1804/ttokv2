@@ -99,7 +99,19 @@ export class TikTokLiveConnector {
       const state = await this.connection.connect();
       console.log(`✅ Connecté au live de ${this.uniqueId}`, state);
     } catch (error: any) {
-      console.error(`❌ Erreur de connexion:`, error);
+      const errorMessage = error.message || error.toString();
+      console.error(`❌ Erreur de connexion pour ${this.uniqueId}:`, errorMessage);
+      
+      // Nettoyer la connexion en cas d'échec
+      if (this.connection) {
+        try {
+          this.connection.disconnect();
+        } catch (e) {
+          // Ignorer les erreurs de déconnexion
+        }
+        this.connection = null;
+      }
+      
       throw error;
     }
   }
