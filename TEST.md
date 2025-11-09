@@ -1,5 +1,28 @@
 # Guide de test complet
 
+## 🚀 Test rapide avec prettypetals2026
+
+### Terminal 1 - Backend
+```powershell
+.\test-prettypetals2026.ps1
+```
+
+### Terminal 2 - Test API (après démarrage du backend)
+```powershell
+.\test-api-prettypetals.ps1
+```
+
+### Terminal 3 - Frontend
+```powershell
+cd frontend
+npm run dev
+```
+Puis ouvrez `http://localhost:3000` dans votre navigateur.
+
+---
+
+## Guide de test complet
+
 ## ✅ Corrections apportées
 
 1. **Démarrage non-bloquant** : Utilisation de `setImmediate()` pour éviter de bloquer le démarrage du serveur
