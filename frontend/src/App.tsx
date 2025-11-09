@@ -5,8 +5,8 @@ import MessageList from './components/MessageList';
 import ControlPanel from './components/ControlPanel';
 import { Message } from './types';
 
-const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3002';
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://vps-7841b0bb.vps.ovh.ca:3002';
+const API_URL = import.meta.env.VITE_API_URL || 'http://vps-7841b0bb.vps.ovh.ca:3001';
 
 function App() {
   const [messages, setMessages] = useState<Message[]>([]);

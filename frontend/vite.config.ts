@@ -8,7 +8,7 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://vps-7841b0bb.vps.ovh.ca:3001',
         changeOrigin: true,
       },
     },
