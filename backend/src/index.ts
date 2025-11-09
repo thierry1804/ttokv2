@@ -12,22 +12,34 @@ app.use(cors());
 app.use(express.json());
 
 // WebSocket Server
-const wss = new WebSocketServer({ port: Number(WS_PORT) });
+const wss = new WebSocketServer({ 
+  port: Number(WS_PORT),
+  host: '0.0.0.0' // Écouter sur toutes les interfaces réseau
+});
 
 // Store active connections
 const clients = new Set<WebSocket>();
 
-wss.on('connection', (ws: WebSocket) => {
-  console.log('Nouveau client WebSocket connecté');
+wss.on('listening', () => {
+  console.log(`🔌 Serveur WebSocket démarré sur ws://0.0.0.0:${WS_PORT}`);
+});
+
+wss.on('error', (error) => {
+  console.error('❌ Erreur serveur WebSocket:', error);
+});
+
+wss.on('connection', (ws: WebSocket, req) => {
+  const clientIp = req.socket.remoteAddress;
+  console.log(`✅ Nouveau client WebSocket connecté depuis ${clientIp}`);
   clients.add(ws);
 
   ws.on('close', () => {
-    console.log('Client WebSocket déconnecté');
+    console.log(`🔌 Client WebSocket déconnecté (${clientIp})`);
     clients.delete(ws);
   });
 
   ws.on('error', (error) => {
-    console.error('Erreur WebSocket:', error);
+    console.error(`❌ Erreur WebSocket client (${clientIp}):`, error);
   });
 });
 
@@ -95,13 +107,14 @@ app.get('/health', (req, res) => {
 
 // Start listening to a TikTok live
 app.post('/api/tiktok/start', async (req, res) => {
+  // Récupérer uniqueId avant le try pour qu'il soit accessible dans le catch
+  const { uniqueId } = req.body;
+
+  if (!uniqueId) {
+    return res.status(400).json({ error: 'uniqueId est requis' });
+  }
+
   try {
-    const { uniqueId } = req.body;
-
-    if (!uniqueId) {
-      return res.status(400).json({ error: 'uniqueId est requis' });
-    }
-
     // Stop existing connection if any
     if (tiktokConnections.has(uniqueId)) {
       const existingConnector = tiktokConnections.get(uniqueId);
@@ -200,9 +213,8 @@ app.get('/api/tiktok/active', (req, res) => {
 });
 
 // Start HTTP server
-app.listen(PORT, () => {
-  console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
-  console.log(`🔌 Serveur WebSocket démarré sur le port ${WS_PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Serveur HTTP démarré sur http://0.0.0.0:${PORT}`);
   console.log(`📡 Prêt à écouter les lives TikTok`);
   
   // Auto-start si TIKTOK_UNIQUE_ID est configuré (en asynchrone pour ne pas bloquer)
