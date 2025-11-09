@@ -34,9 +34,50 @@ npm install
 
 ### 1. Démarrer le backend
 
+#### Mode développement
+
 ```bash
 cd backend
 npm run dev
+```
+
+#### Mode production avec auto-démarrage
+
+Le backend peut démarrer automatiquement l'écoute d'un live TikTok si la variable d'environnement `TIKTOK_UNIQUE_ID` est configurée.
+
+**Linux/Mac :**
+```bash
+cd backend
+export TIKTOK_UNIQUE_ID=shentyandrianirina
+export PORT=3001
+export WS_PORT=3002
+npm run build
+npm start
+```
+
+**Windows (PowerShell) :**
+```powershell
+cd backend
+$env:TIKTOK_UNIQUE_ID="shentyandrianirina"
+$env:PORT=3001
+$env:WS_PORT=3002
+npm run build
+npm start
+```
+
+**Ou utiliser les scripts fournis :**
+
+Linux/Mac :
+```bash
+cd backend
+chmod +x start.sh
+./start.sh
+```
+
+Windows :
+```powershell
+cd backend
+.\start.ps1
 ```
 
 Le serveur démarre sur :
@@ -124,12 +165,35 @@ Les messages sont transmis via WebSocket avec les types suivants :
 
 ### Backend
 
+Vous pouvez configurer les variables d'environnement de deux façons :
+
+#### Option 1 : Variables d'environnement système (recommandé pour la production)
+
+**Linux/Mac :**
+```bash
+export PORT=3001
+export WS_PORT=3002
+export TIKTOK_UNIQUE_ID=shentyandrianirina
+```
+
+**Windows (PowerShell) :**
+```powershell
+$env:PORT=3001
+$env:WS_PORT=3002
+$env:TIKTOK_UNIQUE_ID="shentyandrianirina"
+```
+
+#### Option 2 : Fichier `.env` (nécessite dotenv)
+
 Créez un fichier `.env` dans le dossier `backend` :
 
 ```env
 PORT=3001
 WS_PORT=3002
+TIKTOK_UNIQUE_ID=shentyandrianirina
 ```
+
+**Note :** Si `TIKTOK_UNIQUE_ID` est configuré, l'écoute démarre automatiquement au lancement du serveur.
 
 ### Frontend
 

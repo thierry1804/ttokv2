@@ -44,6 +44,27 @@ function broadcastMessage(data: any) {
 // Store active TikTok connections
 const tiktokConnections = new Map<string, TikTokLiveConnector>();
 
+// Fonction pour démarrer automatiquement l'écoute
+async function startTikTokConnection(uniqueId: string) {
+  try {
+    // Stop existing connection if any
+    if (tiktokConnections.has(uniqueId)) {
+      const existingConnector = tiktokConnections.get(uniqueId);
+      existingConnector?.disconnect();
+      tiktokConnections.delete(uniqueId);
+    }
+
+    // Create new connection
+    const connector = new TikTokLiveConnector(uniqueId, broadcastMessage);
+    tiktokConnections.set(uniqueId, connector);
+
+    await connector.connect();
+    console.log(`✅ Écoute automatique démarrée pour ${uniqueId}`);
+  } catch (error: any) {
+    console.error(`❌ Erreur lors du démarrage automatique pour ${uniqueId}:`, error);
+  }
+}
+
 // API Routes
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -121,10 +142,19 @@ app.get('/api/tiktok/active', (req, res) => {
 });
 
 // Start HTTP server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`🚀 Serveur HTTP démarré sur le port ${PORT}`);
   console.log(`🔌 Serveur WebSocket démarré sur le port ${WS_PORT}`);
   console.log(`📡 Prêt à écouter les lives TikTok`);
+  
+  // Auto-start si TIKTOK_UNIQUE_ID est configuré
+  const defaultUniqueId = process.env.TIKTOK_UNIQUE_ID;
+  if (defaultUniqueId) {
+    console.log(`🔄 Démarrage automatique de l'écoute pour ${defaultUniqueId}...`);
+    await startTikTokConnection(defaultUniqueId);
+  } else {
+    console.log(`ℹ️  Aucun TIKTOK_UNIQUE_ID configuré, démarrage manuel requis`);
+  }
 });
 
 // Graceful shutdown
