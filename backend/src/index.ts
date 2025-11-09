@@ -122,9 +122,44 @@ app.post('/api/tiktok/start', async (req, res) => {
     });
   } catch (error: any) {
     console.error('Erreur lors du démarrage:', error);
+    
+    const errorMessage = error.message || error.toString();
+    const errorName = error.name || error.constructor?.name || '';
+    
+    // Messages d'erreur plus explicites
+    let userMessage = 'Erreur lors du démarrage de l\'écoute';
+    let suggestions: string[] = [];
+    
+    if (errorMessage.includes('Failed to retrieve the initial room data') || 
+        errorName === 'InitialFetchError') {
+      userMessage = 'Impossible de récupérer les données du live';
+      suggestions = [
+        `Vérifiez que l'utilisateur "${uniqueId}" est actuellement en live sur TikTok`,
+        `Vérifiez que le nom d'utilisateur "${uniqueId}" est correct (sans le @)`,
+        `Assurez-vous que le live est accessible publiquement`,
+        `Attendez quelques secondes et réessayez si le live vient de commencer`
+      ];
+    } else if (errorMessage.includes('User not found') || errorMessage.includes('Invalid user')) {
+      userMessage = 'Utilisateur introuvable';
+      suggestions = [
+        `Le nom d'utilisateur "${uniqueId}" n'existe pas ou est incorrect`,
+        `Vérifiez l'orthographe du nom d'utilisateur (sans le @)`
+      ];
+    } else if (errorMessage.includes('Connection timeout') || errorMessage.includes('timeout')) {
+      userMessage = 'Timeout de connexion';
+      suggestions = [
+        `La connexion à TikTok a expiré`,
+        `Vérifiez votre connexion internet`,
+        `Réessayez dans quelques instants`
+      ];
+    }
+    
     res.status(500).json({ 
-      error: 'Erreur lors du démarrage de l\'écoute',
-      details: error.message 
+      error: userMessage,
+      details: errorMessage,
+      errorName: errorName,
+      suggestions: suggestions.length > 0 ? suggestions : undefined,
+      uniqueId
     });
   }
 });

@@ -100,7 +100,21 @@ export class TikTokLiveConnector {
       console.log(`✅ Connecté au live de ${this.uniqueId}`, state);
     } catch (error: any) {
       const errorMessage = error.message || error.toString();
+      const errorName = error.name || error.constructor?.name || 'UnknownError';
+      
       console.error(`❌ Erreur de connexion pour ${this.uniqueId}:`, errorMessage);
+      console.error(`   Type d'erreur: ${errorName}`);
+      
+      // Log supplémentaire pour InitialFetchError
+      if (errorName === 'InitialFetchError' || errorMessage.includes('Failed to retrieve the initial room data')) {
+        console.error(`   ⚠️  Cette erreur indique généralement que:`);
+        console.error(`      - L'utilisateur "${this.uniqueId}" n'est pas en live actuellement`);
+        console.error(`      - Le nom d'utilisateur est incorrect`);
+        console.error(`      - Le live n'est pas accessible publiquement`);
+        if (error.retryAfter) {
+          console.error(`   ⏱️  Retry après: ${error.retryAfter}ms`);
+        }
+      }
       
       // Nettoyer la connexion en cas d'échec
       if (this.connection) {
