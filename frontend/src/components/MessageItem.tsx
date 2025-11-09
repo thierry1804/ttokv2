@@ -21,48 +21,6 @@ function MessageItem({ message, isMarked = false }: MessageItemProps) {
     return `${timeString}.${centiseconds}`;
   };
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'chat':
-        return '💬';
-      case 'gift':
-        return '🎁';
-      case 'follow':
-        return '👤';
-      case 'like':
-        return '❤️';
-      case 'share':
-        return '📤';
-      case 'streamEnd':
-        return '⏹️';
-      case 'error':
-        return '❌';
-      default:
-        return '📨';
-    }
-  };
-
-  const getTypeLabel = (type: string) => {
-    switch (type) {
-      case 'chat':
-        return 'Message';
-      case 'gift':
-        return 'Cadeau';
-      case 'follow':
-        return 'Nouveau follower';
-      case 'like':
-        return 'Like';
-      case 'share':
-        return 'Partage';
-      case 'streamEnd':
-        return 'Stream terminé';
-      case 'error':
-        return 'Erreur';
-      default:
-        return type;
-    }
-  };
-
   return (
     <div className={`message-item message-${message.type} ${isMarked ? 'message-marked' : ''}`}>
       <div className="message-header">

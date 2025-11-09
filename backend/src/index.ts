@@ -4,8 +4,8 @@ import cors from 'cors';
 import { TikTokLiveConnector } from './tiktok-live-connector';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const WS_PORT = process.env.WS_PORT || 3002;
+const PORT = Number(process.env.PORT || 3001);
+const WS_PORT = Number(process.env.WS_PORT || 3002);
 
 // Middleware
 app.use(cors());
