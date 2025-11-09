@@ -6,6 +6,7 @@ import { TikTokLiveConnector } from './tiktok-live-connector';
 const app = express();
 const PORT = Number(process.env.PORT || 3001);
 const WS_PORT = Number(process.env.WS_PORT || 3002);
+const TIKTOK_SIGN_API_KEY = process.env.TIKTOK_SIGN_API_KEY;
 
 // Middleware
 app.use(cors());
@@ -152,7 +153,7 @@ async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetrie
     }
 
     // Create new connection
-    const connector = new TikTokLiveConnector(uniqueId, broadcastMessage);
+    const connector = new TikTokLiveConnector(uniqueId, broadcastMessage, TIKTOK_SIGN_API_KEY);
     tiktokConnections.set(uniqueId, connector);
 
     await connector.connect();
@@ -259,7 +260,7 @@ app.post('/api/tiktok/start', async (req, res) => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Create new connection
-    const connector = new TikTokLiveConnector(uniqueId, broadcastMessage);
+    const connector = new TikTokLiveConnector(uniqueId, broadcastMessage, TIKTOK_SIGN_API_KEY);
     tiktokConnections.set(uniqueId, connector);
 
     await connector.connect();
@@ -406,6 +407,12 @@ app.get('/api/tiktok/active', (req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Serveur HTTP démarré sur http://0.0.0.0:${PORT}`);
   console.log(`📡 Prêt à écouter les lives TikTok`);
+  
+  if (TIKTOK_SIGN_API_KEY) {
+    console.log(`🔑 Clé API TikTok configurée`);
+  } else {
+    console.log(`⚠️  Aucune clé API TikTok configurée (TIKTOK_SIGN_API_KEY), utilisation du serveur de signature par défaut`);
+  }
   
   // Auto-start si TIKTOK_UNIQUE_ID est configuré (en asynchrone pour ne pas bloquer)
   const defaultUniqueId = process.env.TIKTOK_UNIQUE_ID;

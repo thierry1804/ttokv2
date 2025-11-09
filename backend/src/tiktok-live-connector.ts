@@ -1,13 +1,15 @@
-import { WebcastPushConnection } from 'tiktok-live-connector';
+import { TikTokLiveConnection, WebcastEvent, ControlEvent } from 'tiktok-live-connector';
 
 export class TikTokLiveConnector {
   private uniqueId: string;
-  private connection: WebcastPushConnection | null = null;
+  private connection: TikTokLiveConnection | null = null;
   private broadcastCallback: (data: any) => void;
+  private signApiKey: string | undefined;
 
-  constructor(uniqueId: string, broadcastCallback: (data: any) => void) {
+  constructor(uniqueId: string, broadcastCallback: (data: any) => void, signApiKey?: string) {
     this.uniqueId = uniqueId;
     this.broadcastCallback = broadcastCallback;
+    this.signApiKey = signApiKey;
   }
 
   async connect(): Promise<void> {
@@ -19,13 +21,19 @@ export class TikTokLiveConnector {
       console.log(`   Nom d'utilisateur original: "${this.uniqueId}"`);
       console.log(`   Nom d'utilisateur normalisé: "${normalizedUniqueId}"`);
       
-      this.connection = new WebcastPushConnection(normalizedUniqueId, {
-        enableExtendedGiftInfo: true,
-        processInitialData: true,
-      });
+      // Configuration de la connexion avec la clé API si disponible
+      const connectionOptions: any = {};
+      if (this.signApiKey) {
+        connectionOptions.signApiKey = this.signApiKey;
+        console.log(`   🔑 Clé API configurée`);
+      } else {
+        console.log(`   ⚠️  Aucune clé API configurée (utilise le serveur de signature par défaut)`);
+      }
+      
+      this.connection = new TikTokLiveConnection(normalizedUniqueId, connectionOptions);
 
-      // Event: Room stats (viewers)
-      this.connection.on('roomUser', (data) => {
+      // Event: Room stats (viewers) - WebcastEvent.ROOM_USER
+      this.connection.on(WebcastEvent.ROOM_USER, (data: any) => {
         this.broadcastCallback({
           type: 'stats',
           timestamp: new Date().toISOString(),
@@ -36,8 +44,8 @@ export class TikTokLiveConnector {
         });
       });
 
-      // Event: Like stats (total likes)
-      this.connection.on('like', (data) => {
+      // Event: Like stats (total likes) - WebcastEvent.LIKE
+      this.connection.on(WebcastEvent.LIKE, (data: any) => {
         this.broadcastCallback({
           type: 'stats',
           timestamp: new Date().toISOString(),
@@ -48,36 +56,33 @@ export class TikTokLiveConnector {
         });
       });
 
-      // Event: Chat messages
-      this.connection.on('chat', (data) => {
-        console.log(`💬 Message de ${data.uniqueId}: ${data.comment}`);
+      // Event: Chat messages - WebcastEvent.CHAT
+      this.connection.on(WebcastEvent.CHAT, (data: any) => {
+        console.log(`💬 Message de ${data.user?.uniqueId || data.uniqueId}: ${data.comment}`);
         this.broadcastCallback({
           type: 'chat',
           timestamp: new Date().toISOString(),
           data: {
-            userId: data.userId,
-            nickname: data.nickname || data.uniqueId,
+            userId: data.user?.userId || data.userId,
+            nickname: data.user?.nickname || data.nickname || data.user?.uniqueId || data.uniqueId,
             comment: data.comment,
-            profilePictureUrl: data.profilePictureUrl,
-            uniqueId: data.uniqueId,
+            profilePictureUrl: data.user?.profilePictureUrl || data.profilePictureUrl,
+            uniqueId: data.user?.uniqueId || data.uniqueId,
           },
         });
       });
 
       // Event: Gifts - Désactivé (uniquement les messages)
-      // this.connection.on('gift', (data) => { ... });
+      // this.connection.on(WebcastEvent.GIFT, (data) => { ... });
 
       // Event: Followers - Désactivé (uniquement les messages)
-      // this.connection.on('follow', (data) => { ... });
-
-      // Event: Likes - Désactivé (uniquement les messages)
-      // this.connection.on('like', (data) => { ... });
+      // this.connection.on(WebcastEvent.FOLLOW, (data) => { ... });
 
       // Event: Share - Désactivé (uniquement les messages)
-      // this.connection.on('share', (data) => { ... });
+      // this.connection.on(WebcastEvent.SHARE, (data) => { ... });
 
-      // Event: Stream end
-      this.connection.on('streamEnd', () => {
+      // Event: Stream end - WebcastEvent.STREAM_END
+      this.connection.on(WebcastEvent.STREAM_END, () => {
         console.log(`⏹️ Stream terminé pour ${this.uniqueId}`);
         this.broadcastCallback({
           type: 'streamEnd',
@@ -88,22 +93,22 @@ export class TikTokLiveConnector {
         });
       });
 
-      // Event: Error
-      this.connection.on('error', (error) => {
+      // Event: Error (via ControlEvent)
+      this.connection.on(ControlEvent.ERROR, (error: any) => {
         console.error(`❌ Erreur TikTok API:`, error);
         this.broadcastCallback({
           type: 'error',
           timestamp: new Date().toISOString(),
           data: {
-            error: error.message || 'Erreur inconnue',
+            error: error.message || error.toString() || 'Erreur inconnue',
             uniqueId: this.uniqueId,
           },
         });
       });
 
       // Connect to the live stream
-      const state = await this.connection.connect();
-      console.log(`✅ Connecté au live de ${normalizedUniqueId}`, state);
+      await this.connection.connect();
+      console.log(`✅ Connecté au live de ${normalizedUniqueId}`);
     } catch (error: any) {
       // Log détaillé de l'erreur pour débogage
       console.error(`❌ Erreur brute capturée:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
@@ -200,4 +205,3 @@ export class TikTokLiveConnector {
     }
   }
 }
-

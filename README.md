@@ -174,6 +174,7 @@ Vous pouvez configurer les variables d'environnement de deux façons :
 export PORT=3001
 export WS_PORT=3002
 export TIKTOK_UNIQUE_ID=shentyandrianirina
+export TIKTOK_SIGN_API_KEY=votre_cle_api
 ```
 
 **Windows (PowerShell) :**
@@ -181,6 +182,7 @@ export TIKTOK_UNIQUE_ID=shentyandrianirina
 $env:PORT=3001
 $env:WS_PORT=3002
 $env:TIKTOK_UNIQUE_ID="shentyandrianirina"
+$env:TIKTOK_SIGN_API_KEY="votre_cle_api"
 ```
 
 #### Option 2 : Fichier `.env` (nécessite dotenv)
@@ -191,9 +193,12 @@ Créez un fichier `.env` dans le dossier `backend` :
 PORT=3001
 WS_PORT=3002
 TIKTOK_UNIQUE_ID=shentyandrianirina
+TIKTOK_SIGN_API_KEY=votre_cle_api
 ```
 
-**Note :** Si `TIKTOK_UNIQUE_ID` est configuré, l'écoute démarre automatiquement au lancement du serveur.
+**Note :** 
+- Si `TIKTOK_UNIQUE_ID` est configuré, l'écoute démarre automatiquement au lancement du serveur.
+- `TIKTOK_SIGN_API_KEY` est optionnel mais recommandé pour une meilleure stabilité. Si non configuré, le serveur utilisera le serveur de signature par défaut de la bibliothèque.
 
 ### Frontend
 
