@@ -99,21 +99,43 @@ export class TikTokLiveConnector {
       const state = await this.connection.connect();
       console.log(`✅ Connecté au live de ${this.uniqueId}`, state);
     } catch (error: any) {
-      const errorMessage = error.message || error.toString();
-      const errorName = error.name || error.constructor?.name || 'UnknownError';
+      // Extraire le message d'erreur (peut être dans error.message, error.exception, ou error.toString())
+      const errorMessage = error.message || 
+                          (error.exception && error.exception.message) || 
+                          (typeof error.exception === 'string' ? error.exception : null) ||
+                          error.toString();
+      
+      // Détecter le type d'erreur (peut être dans error.name, error.exception.name, ou error.constructor.name)
+      const errorName = error.name || 
+                       (error.exception && error.exception.name) ||
+                       (error.exception && error.exception.constructor?.name) ||
+                       error.constructor?.name || 
+                       'UnknownError';
+      
+      // Extraire retryAfter (peut être dans error.retryAfter ou error.exception.retryAfter)
+      const retryAfter = error.retryAfter || (error.exception && error.exception.retryAfter) || null;
       
       console.error(`❌ Erreur de connexion pour ${this.uniqueId}:`, errorMessage);
       console.error(`   Type d'erreur: ${errorName}`);
       
       // Log supplémentaire pour InitialFetchError
-      if (errorName === 'InitialFetchError' || errorMessage.includes('Failed to retrieve the initial room data')) {
+      const isInitialFetchError = errorName === 'InitialFetchError' || 
+                                  errorMessage.includes('Failed to retrieve the initial room data') ||
+                                  (error.exception && error.exception.name === 'InitialFetchError');
+      
+      if (isInitialFetchError) {
         console.error(`   ⚠️  Cette erreur indique généralement que:`);
         console.error(`      - L'utilisateur "${this.uniqueId}" n'est pas en live actuellement`);
         console.error(`      - Le nom d'utilisateur est incorrect`);
         console.error(`      - Le live n'est pas accessible publiquement`);
-        if (error.retryAfter) {
-          console.error(`   ⏱️  Retry après: ${error.retryAfter}ms`);
+        if (retryAfter) {
+          console.error(`   ⏱️  TikTok suggère d'attendre ${retryAfter}ms avant de réessayer`);
         }
+      }
+      
+      // Ajouter retryAfter à l'erreur pour qu'elle soit accessible dans index.ts
+      if (retryAfter && !error.retryAfter) {
+        error.retryAfter = retryAfter;
       }
       
       // Nettoyer la connexion en cas d'échec

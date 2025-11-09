@@ -136,15 +136,27 @@ app.post('/api/tiktok/start', async (req, res) => {
   } catch (error: any) {
     console.error('Erreur lors du démarrage:', error);
     
-    const errorMessage = error.message || error.toString();
-    const errorName = error.name || error.constructor?.name || '';
+    // Extraire les informations d'erreur (gérer les erreurs encapsulées)
+    const errorMessage = error.message || 
+                        (error.exception && error.exception.message) || 
+                        (typeof error.exception === 'string' ? error.exception : null) ||
+                        error.toString();
+    const errorName = error.name || 
+                     (error.exception && error.exception.name) ||
+                     (error.exception && error.exception.constructor?.name) ||
+                     error.constructor?.name || 
+                     '';
+    const retryAfter = error.retryAfter || (error.exception && error.exception.retryAfter) || null;
     
     // Messages d'erreur plus explicites
     let userMessage = 'Erreur lors du démarrage de l\'écoute';
     let suggestions: string[] = [];
     
-    if (errorMessage.includes('Failed to retrieve the initial room data') || 
-        errorName === 'InitialFetchError') {
+    const isInitialFetchError = errorName === 'InitialFetchError' || 
+                               errorMessage.includes('Failed to retrieve the initial room data') ||
+                               (error.exception && error.exception.name === 'InitialFetchError');
+    
+    if (isInitialFetchError) {
       userMessage = 'Impossible de récupérer les données du live';
       suggestions = [
         `Vérifiez que l'utilisateur "${uniqueId}" est actuellement en live sur TikTok`,
@@ -152,6 +164,12 @@ app.post('/api/tiktok/start', async (req, res) => {
         `Assurez-vous que le live est accessible publiquement`,
         `Attendez quelques secondes et réessayez si le live vient de commencer`
       ];
+      
+      // Ajouter une suggestion spécifique si retryAfter est disponible
+      if (retryAfter) {
+        const retrySeconds = Math.ceil(retryAfter / 1000);
+        suggestions.push(`⏱️ TikTok suggère d'attendre ${retrySeconds} seconde(s) avant de réessayer`);
+      }
     } else if (errorMessage.includes('User not found') || errorMessage.includes('Invalid user')) {
       userMessage = 'Utilisateur introuvable';
       suggestions = [
@@ -171,6 +189,7 @@ app.post('/api/tiktok/start', async (req, res) => {
       error: userMessage,
       details: errorMessage,
       errorName: errorName,
+      retryAfter: retryAfter || undefined,
       suggestions: suggestions.length > 0 ? suggestions : undefined,
       uniqueId
     });
