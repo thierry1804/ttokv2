@@ -56,14 +56,99 @@ function broadcastMessage(data: any) {
 // Store active TikTok connections
 const tiktokConnections = new Map<string, TikTokLiveConnector>();
 
-// Fonction pour démarrer automatiquement l'écoute avec retry
-async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetries = 3) {
+// Gestion du rate limiting : tracker des dernières tentatives
+const rateLimitTracker = new Map<string, {
+  lastAttempt: number;
+  attemptCount: number;
+  backoffUntil: number;
+}>();
+
+// Configuration du rate limiting
+const RATE_LIMIT_CONFIG = {
+  minDelayBetweenAttempts: 2000, // 2 secondes minimum entre tentatives pour le même utilisateur
+  maxRetries: 5, // Augmenté à 5 tentatives
+  baseDelay: 1000, // Délai de base : 1 seconde
+  maxDelay: 60000, // Délai maximum : 60 secondes
+  jitter: true, // Ajouter de l'aléatoire pour éviter les collisions
+};
+
+// Fonction pour calculer le délai avec backoff exponentiel et jitter
+function calculateRetryDelay(retryCount: number, retryAfter?: number | null): number {
+  // Si TikTok suggère un délai, l'utiliser en priorité (avec un petit buffer)
+  if (retryAfter && retryAfter > 0) {
+    return Math.min(retryAfter + 500, RATE_LIMIT_CONFIG.maxDelay); // Buffer de 500ms
+  }
+  
+  // Sinon, utiliser backoff exponentiel avec jitter
+  const exponentialDelay = Math.min(
+    RATE_LIMIT_CONFIG.baseDelay * Math.pow(2, retryCount),
+    RATE_LIMIT_CONFIG.maxDelay
+  );
+  
+  // Ajouter du jitter (variation aléatoire de ±20%) pour éviter les collisions
+  if (RATE_LIMIT_CONFIG.jitter) {
+    const jitterAmount = exponentialDelay * 0.2 * (Math.random() * 2 - 1); // ±20%
+    return Math.max(1000, Math.floor(exponentialDelay + jitterAmount));
+  }
+  
+  return exponentialDelay;
+}
+
+// Fonction pour vérifier si on peut faire une tentative (rate limiting)
+function canAttemptConnection(uniqueId: string): { canAttempt: boolean; waitTime: number } {
+  const now = Date.now();
+  const tracker = rateLimitTracker.get(uniqueId);
+  
+  if (tracker) {
+    // Vérifier le délai minimum entre tentatives
+    const timeSinceLastAttempt = now - tracker.lastAttempt;
+    if (timeSinceLastAttempt < RATE_LIMIT_CONFIG.minDelayBetweenAttempts) {
+      const waitTime = RATE_LIMIT_CONFIG.minDelayBetweenAttempts - timeSinceLastAttempt;
+      return { canAttempt: false, waitTime };
+    }
+    
+    // Vérifier si on est en période de backoff
+    if (now < tracker.backoffUntil) {
+      const waitTime = tracker.backoffUntil - now;
+      return { canAttempt: false, waitTime };
+    }
+  }
+  
+  return { canAttempt: true, waitTime: 0 };
+}
+
+// Fonction pour démarrer automatiquement l'écoute avec retry intelligent
+async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetries = RATE_LIMIT_CONFIG.maxRetries) {
   try {
+    // Vérifier le rate limiting avant de tenter
+    const { canAttempt, waitTime } = canAttemptConnection(uniqueId);
+    if (!canAttempt) {
+      console.log(`⏳ Rate limiting actif pour ${uniqueId}, attente de ${Math.ceil(waitTime / 1000)}s...`);
+      setTimeout(() => {
+        startTikTokConnection(uniqueId, retryCount, maxRetries);
+      }, waitTime);
+      return;
+    }
+    
+    // Mettre à jour le tracker
+    const now = Date.now();
+    const tracker = rateLimitTracker.get(uniqueId) || { lastAttempt: 0, attemptCount: 0, backoffUntil: 0 };
+    tracker.lastAttempt = now;
+    tracker.attemptCount = retryCount + 1;
+    rateLimitTracker.set(uniqueId, tracker);
+    
     // Stop existing connection if any
     if (tiktokConnections.has(uniqueId)) {
       const existingConnector = tiktokConnections.get(uniqueId);
       existingConnector?.disconnect();
       tiktokConnections.delete(uniqueId);
+    }
+
+    // Délai initial avant la première tentative pour éviter les requêtes trop rapides
+    if (retryCount === 0) {
+      const initialDelay = 1000; // 1 seconde avant la première tentative
+      console.log(`⏱️  Délai initial de ${initialDelay / 1000}s pour ${uniqueId}...`);
+      await new Promise(resolve => setTimeout(resolve, initialDelay));
     }
 
     // Create new connection
@@ -72,6 +157,9 @@ async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetrie
 
     await connector.connect();
     console.log(`✅ Écoute automatique démarrée pour ${uniqueId}`);
+    
+    // Réinitialiser le tracker en cas de succès
+    rateLimitTracker.delete(uniqueId);
   } catch (error: any) {
     // Nettoyer la connexion en cas d'échec
     if (tiktokConnections.has(uniqueId)) {
@@ -79,23 +167,51 @@ async function startTikTokConnection(uniqueId: string, retryCount = 0, maxRetrie
     }
 
     const errorMessage = error.message || error.toString();
+    const actualError = error.exception || error;
+    const retryAfter = (error.exception && error.exception.retryAfter) || 
+                      error.retryAfter || 
+                      actualError.retryAfter || 
+                      null;
+
     console.error(`❌ Erreur lors du démarrage automatique pour ${uniqueId}:`, errorMessage);
+
+    // Détecter les erreurs de rate limiting
+    const isRateLimitError = errorMessage.includes('rate limit') || 
+                             errorMessage.includes('too many requests') ||
+                             errorMessage.includes('429') ||
+                             (retryAfter && retryAfter > 5000); // Si retryAfter > 5s, probablement rate limit
+
+    if (isRateLimitError) {
+      console.warn(`⚠️  Rate limiting détecté pour ${uniqueId}`);
+      const tracker = rateLimitTracker.get(uniqueId) || { lastAttempt: 0, attemptCount: 0, backoffUntil: 0 };
+      // Appliquer un backoff plus long en cas de rate limiting
+      const backoffTime = retryAfter || (30000 * (retryCount + 1)); // 30s, 60s, 90s...
+      tracker.backoffUntil = Date.now() + backoffTime;
+      rateLimitTracker.set(uniqueId, tracker);
+      console.log(`🛑 Backoff appliqué jusqu'à ${new Date(tracker.backoffUntil).toLocaleTimeString()}`);
+    }
 
     // Messages d'erreur plus explicites
     if (errorMessage.includes('Failed to retrieve the initial room data')) {
       console.error(`⚠️  Raison probable : L'utilisateur "${uniqueId}" n'est pas en live actuellement ou le nom d'utilisateur est incorrect.`);
     }
 
-    // Retry avec backoff exponentiel
+    // Retry avec backoff exponentiel intelligent
     if (retryCount < maxRetries) {
-      const delay = Math.min(1000 * Math.pow(2, retryCount), 30000); // Max 30 secondes
-      console.log(`🔄 Nouvelle tentative dans ${delay / 1000} secondes... (${retryCount + 1}/${maxRetries})`);
+      const delay = calculateRetryDelay(retryCount, retryAfter);
+      console.log(`🔄 Nouvelle tentative dans ${Math.ceil(delay / 1000)}s... (${retryCount + 1}/${maxRetries})`);
+      if (retryAfter) {
+        console.log(`   ⏱️  Délai suggéré par TikTok: ${retryAfter}ms`);
+      }
+      
       setTimeout(() => {
         startTikTokConnection(uniqueId, retryCount + 1, maxRetries);
       }, delay);
     } else {
       console.error(`❌ Échec définitif après ${maxRetries} tentatives pour ${uniqueId}`);
       console.log(`ℹ️  Le serveur continue de fonctionner. Vous pouvez démarrer manuellement via l'API.`);
+      // Nettoyer le tracker après échec définitif
+      rateLimitTracker.delete(uniqueId);
     }
   }
 }
@@ -115,18 +231,41 @@ app.post('/api/tiktok/start', async (req, res) => {
   }
 
   try {
+    // Vérifier le rate limiting avant de tenter
+    const { canAttempt, waitTime } = canAttemptConnection(uniqueId);
+    if (!canAttempt) {
+      return res.status(429).json({
+        error: 'Rate limiting actif',
+        message: `Veuillez attendre ${Math.ceil(waitTime / 1000)} seconde(s) avant de réessayer`,
+        retryAfter: waitTime,
+        uniqueId
+      });
+    }
+    
+    // Mettre à jour le tracker
+    const now = Date.now();
+    const tracker = rateLimitTracker.get(uniqueId) || { lastAttempt: 0, attemptCount: 0, backoffUntil: 0 };
+    tracker.lastAttempt = now;
+    rateLimitTracker.set(uniqueId, tracker);
+    
     // Stop existing connection if any
     if (tiktokConnections.has(uniqueId)) {
       const existingConnector = tiktokConnections.get(uniqueId);
       existingConnector?.disconnect();
       tiktokConnections.delete(uniqueId);
     }
+    
+    // Délai initial pour éviter les requêtes trop rapides
+    await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Create new connection
     const connector = new TikTokLiveConnector(uniqueId, broadcastMessage);
     tiktokConnections.set(uniqueId, connector);
 
     await connector.connect();
+    
+    // Réinitialiser le tracker en cas de succès
+    rateLimitTracker.delete(uniqueId);
 
     res.json({ 
       success: true, 
@@ -157,6 +296,29 @@ app.post('/api/tiktok/start', async (req, res) => {
                       error.retryAfter || 
                       actualError.retryAfter || 
                       null;
+    
+    // Détecter les erreurs de rate limiting
+    const isRateLimitError = errorMessage.includes('rate limit') || 
+                             errorMessage.includes('too many requests') ||
+                             errorMessage.includes('429') ||
+                             (retryAfter && retryAfter > 5000);
+    
+    if (isRateLimitError) {
+      console.warn(`⚠️  Rate limiting détecté pour ${uniqueId}`);
+      const tracker = rateLimitTracker.get(uniqueId) || { lastAttempt: 0, attemptCount: 0, backoffUntil: 0 };
+      // Appliquer un backoff plus long en cas de rate limiting
+      const backoffTime = retryAfter || 30000; // 30 secondes par défaut
+      tracker.backoffUntil = Date.now() + backoffTime;
+      rateLimitTracker.set(uniqueId, tracker);
+      console.log(`🛑 Backoff appliqué jusqu'à ${new Date(tracker.backoffUntil).toLocaleTimeString()}`);
+      
+      return res.status(429).json({
+        error: 'Rate limiting détecté',
+        message: `TikTok limite les requêtes. Veuillez attendre ${Math.ceil(backoffTime / 1000)} seconde(s) avant de réessayer`,
+        retryAfter: backoffTime,
+        uniqueId
+      });
+    }
     
     // Messages d'erreur plus explicites
     let userMessage = 'Erreur lors du démarrage de l\'écoute';

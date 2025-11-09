@@ -11,11 +11,17 @@ export class TikTokLiveConnector {
   }
 
   async connect(): Promise<void> {
+    // Normaliser le nom d'utilisateur (enlever @ si présent)
+    const normalizedUniqueId = this.uniqueId.replace(/^@/, '').trim();
+    
     try {
-      console.log(`🔗 Connexion au live de ${this.uniqueId}...`);
+      console.log(`🔗 Connexion au live de ${normalizedUniqueId}...`);
+      console.log(`   Nom d'utilisateur original: "${this.uniqueId}"`);
+      console.log(`   Nom d'utilisateur normalisé: "${normalizedUniqueId}"`);
       
-      this.connection = new WebcastPushConnection(this.uniqueId, {
+      this.connection = new WebcastPushConnection(normalizedUniqueId, {
         enableExtendedGiftInfo: true,
+        processInitialData: true,
       });
 
       // Event: Room stats (viewers)
@@ -97,8 +103,11 @@ export class TikTokLiveConnector {
 
       // Connect to the live stream
       const state = await this.connection.connect();
-      console.log(`✅ Connecté au live de ${this.uniqueId}`, state);
+      console.log(`✅ Connecté au live de ${normalizedUniqueId}`, state);
     } catch (error: any) {
+      // Log détaillé de l'erreur pour débogage
+      console.error(`❌ Erreur brute capturée:`, JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
+      
       // Si l'erreur est encapsulée dans error.exception, utiliser celle-ci en priorité
       const actualError = error.exception || error;
       
@@ -109,12 +118,28 @@ export class TikTokLiveConnector {
                           error.toString();
       
       // Détecter le type d'erreur (priorité à error.exception si elle existe)
-      const errorName = (error.exception && error.exception.name) ||
-                       (error.exception && error.exception.constructor?.name) ||
-                       actualError.name ||
-                       actualError.constructor?.name || 
-                       error.constructor?.name ||
-                       'UnknownError';
+      // Vérifier plusieurs niveaux pour être sûr de capturer InitialFetchError
+      let errorName = 'UnknownError';
+      if (error.exception) {
+        errorName = error.exception.name || 
+                   error.exception.constructor?.name ||
+                   (error.exception.constructor && error.exception.constructor.name) ||
+                   'UnknownError';
+      } else if (actualError.name) {
+        errorName = actualError.name;
+      } else if (actualError.constructor?.name) {
+        errorName = actualError.constructor.name;
+      } else if (error.constructor?.name) {
+        errorName = error.constructor.name;
+      }
+      
+      // Vérifier aussi dans la stack trace
+      if (errorName === 'UnknownError' || errorName === 'Error') {
+        const stack = error.stack || error.exception?.stack || '';
+        if (stack.includes('InitialFetchError')) {
+          errorName = 'InitialFetchError';
+        }
+      }
       
       // Extraire retryAfter (peut être dans error.retryAfter ou error.exception.retryAfter)
       const retryAfter = (error.exception && error.exception.retryAfter) || 
@@ -123,7 +148,10 @@ export class TikTokLiveConnector {
                         null;
       
       console.error(`❌ Erreur de connexion pour ${this.uniqueId}:`, errorMessage);
-      console.error(`   Type d'erreur: ${errorName}`);
+      console.error(`   Type d'erreur détecté: ${errorName}`);
+      console.error(`   error.name: ${error.name || 'undefined'}`);
+      console.error(`   error.exception?.name: ${error.exception?.name || 'undefined'}`);
+      console.error(`   actualError.name: ${actualError.name || 'undefined'}`);
       
       // Log supplémentaire pour InitialFetchError
       const isInitialFetchError = errorName === 'InitialFetchError' || 
