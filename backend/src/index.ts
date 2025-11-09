@@ -136,25 +136,34 @@ app.post('/api/tiktok/start', async (req, res) => {
   } catch (error: any) {
     console.error('Erreur lors du démarrage:', error);
     
-    // Extraire les informations d'erreur (gérer les erreurs encapsulées)
-    const errorMessage = error.message || 
-                        (error.exception && error.exception.message) || 
+    // Si l'erreur est encapsulée dans error.exception, utiliser celle-ci en priorité
+    const actualError = error.exception || error;
+    
+    // Extraire les informations d'erreur
+    const errorMessage = actualError.message || 
+                        error.message ||
                         (typeof error.exception === 'string' ? error.exception : null) ||
                         error.toString();
-    const errorName = error.name || 
-                     (error.exception && error.exception.name) ||
+    
+    // Détecter le type d'erreur (priorité à error.exception si elle existe)
+    const errorName = (error.exception && error.exception.name) ||
                      (error.exception && error.exception.constructor?.name) ||
+                     actualError.name ||
+                     actualError.constructor?.name ||
                      error.constructor?.name || 
                      '';
-    const retryAfter = error.retryAfter || (error.exception && error.exception.retryAfter) || null;
+    
+    const retryAfter = (error.exception && error.exception.retryAfter) || 
+                      error.retryAfter || 
+                      actualError.retryAfter || 
+                      null;
     
     // Messages d'erreur plus explicites
     let userMessage = 'Erreur lors du démarrage de l\'écoute';
     let suggestions: string[] = [];
     
     const isInitialFetchError = errorName === 'InitialFetchError' || 
-                               errorMessage.includes('Failed to retrieve the initial room data') ||
-                               (error.exception && error.exception.name === 'InitialFetchError');
+                               errorMessage.includes('Failed to retrieve the initial room data');
     
     if (isInitialFetchError) {
       userMessage = 'Impossible de récupérer les données du live';
